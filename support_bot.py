@@ -7,19 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from telegram import (
-    Update,
-    Message,
-    BotCommandScopeDefault,
-    BotCommandScopeAllPrivateChats,
-    BotCommandScopeAllGroupChats,
-    MenuButtonDefault,
-)
+from telegram import Update, Message, ReplyKeyboardRemove
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 # ---------------- НАСТРОЙКИ ----------------
-# Вставьте токен или (лучше) задайте переменную окружения BOT_TOKEN
-# Пример (Linux/Mac): export BOT_TOKEN="123:ABC"
+# Вставьте токен или оставьте и задайте переменную окружения BOT_TOKEN
 TOKEN = TOKEN = "8294512646:AAEvEWKxe_JerQ_CXFT9-FG7StxD8XbU9eQ"
 # ID админ-группы (вида -100...)
 ADMIN_GROUP_ID = -1003783796432
@@ -33,19 +25,6 @@ MAX_MAP_SIZE = 5000  # чтобы файл не разрастался беск�
 
 logging.basicConfig(format="%(asctime)s | %(levelname)s | %(message)s", level=logging.INFO)
 log = logging.getLogger("support_bot")
-
-
-async def post_init(application: Application) -> None:
-    """Скрываем меню команд Telegram (то, что показывается снизу), оставляя /start рабочим."""
-    bot = application.bot
-
-    # Убираем команды во всех основных scope, чтобы не показывалось меню
-    await bot.set_my_commands([], scope=BotCommandScopeDefault())
-    await bot.set_my_commands([], scope=BotCommandScopeAllPrivateChats())
-    await bot.set_my_commands([], scope=BotCommandScopeAllGroupChats())
-
-    # Сбрасываем кнопку меню (на случай если была настроена)
-    await bot.set_chat_menu_button(menu_button=MenuButtonDefault())
 
 
 def is_admin(user_id: int) -> bool:
@@ -87,7 +66,11 @@ def header_for_user(user) -> str:
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Здравствуйте! Напишите ваш вопрос — мы ответим вам здесь ✅")
+    # Убираем кастомную клавиатуру (кнопки снизу) и оставляем обычный ввод текста
+    await update.message.reply_text(
+        "Здравствуйте! Напишите ваш вопрос — мы ответим вам здесь ✅",
+        reply_markup=ReplyKeyboardRemove(),
+    )
 
 
 async def myid(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -198,7 +181,7 @@ async def from_client_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent = await context.bot.send_message(chat_id=ADMIN_GROUP_ID, text=head + msg.text)
             mapping[str(sent.message_id)] = user.id
             save_map(mapping)
-            await msg.reply_text("✅ Принято! Мы ответим вам здесь.")
+            await msg.reply_text("✅ Принято! Мы ответим вам здесь.", reply_markup=ReplyKeyboardRemove())
             return
 
         # Фото
@@ -208,7 +191,7 @@ async def from_client_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent = await context.bot.send_photo(chat_id=ADMIN_GROUP_ID, photo=file_id, caption=cap)
             mapping[str(sent.message_id)] = user.id
             save_map(mapping)
-            await msg.reply_text("✅ Принято! Мы ответим вам здесь.")
+            await msg.reply_text("✅ Принято! Мы ответим вам здесь.", reply_markup=ReplyKeyboardRemove())
             return
 
         # Видео
@@ -217,7 +200,7 @@ async def from_client_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent = await context.bot.send_video(chat_id=ADMIN_GROUP_ID, video=msg.video.file_id, caption=cap)
             mapping[str(sent.message_id)] = user.id
             save_map(mapping)
-            await msg.reply_text("✅ Принято! Мы ответим вам здесь.")
+            await msg.reply_text("✅ Принято! Мы ответим вам здесь.", reply_markup=ReplyKeyboardRemove())
             return
 
         # Документ
@@ -226,7 +209,7 @@ async def from_client_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent = await context.bot.send_document(chat_id=ADMIN_GROUP_ID, document=msg.document.file_id, caption=cap)
             mapping[str(sent.message_id)] = user.id
             save_map(mapping)
-            await msg.reply_text("✅ Принято! Мы ответим вам здесь.")
+            await msg.reply_text("✅ Принято! Мы ответим вам здесь.", reply_markup=ReplyKeyboardRemove())
             return
 
         # Голосовое
@@ -235,7 +218,7 @@ async def from_client_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent = await context.bot.send_voice(chat_id=ADMIN_GROUP_ID, voice=msg.voice.file_id, caption=cap or None)
             mapping[str(sent.message_id)] = user.id
             save_map(mapping)
-            await msg.reply_text("✅ Принято! Мы ответим вам здесь.")
+            await msg.reply_text("✅ Принято! Мы ответим вам здесь.", reply_markup=ReplyKeyboardRemove())
             return
 
         # Аудио
@@ -244,7 +227,7 @@ async def from_client_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent = await context.bot.send_audio(chat_id=ADMIN_GROUP_ID, audio=msg.audio.file_id, caption=cap or None)
             mapping[str(sent.message_id)] = user.id
             save_map(mapping)
-            await msg.reply_text("✅ Принято! Мы ответим вам здесь.")
+            await msg.reply_text("✅ Принято! Мы ответим вам здесь.", reply_markup=ReplyKeyboardRemove())
             return
 
         # Стикер
@@ -255,7 +238,7 @@ async def from_client_any(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mapping[str(sent.message_id)] = user.id
             mapping[str(sent2.message_id)] = user.id
             save_map(mapping)
-            await msg.reply_text("✅ Принято! Мы ответим вам здесь.")
+            await msg.reply_text("✅ Принято! Мы ответим вам здесь.", reply_markup=ReplyKeyboardRemove())
             return
 
         await msg.reply_text("❗ Этот тип сообщения пока не поддерживается. Напишите текстом или отправьте фото/видео/документ/голосовое.")
@@ -299,11 +282,11 @@ async def admin_reply_in_group(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 def main():
-    if not TOKEN:
-        print("❗ Задайте токен в переменной окружения BOT_TOKEN.")
+    if not TOKEN or TOKEN == "PASTE_YOUR_BOT_TOKEN_HERE":
+        print("❗ Вставьте TOKEN в файл или задайте переменную окружения BOT_TOKEN.")
         return
 
-    app = Application.builder().token(TOKEN).post_init(post_init).build()
+    app = Application.builder().token(TOKEN).build()
 
     # команды
     app.add_handler(CommandHandler("start", start))
