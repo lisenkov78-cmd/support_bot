@@ -7,11 +7,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from telegram import Update, Message
+from telegram import (
+    Update,
+    Message,
+    BotCommandScopeDefault,
+    BotCommandScopeAllPrivateChats,
+    BotCommandScopeAllGroupChats,
+    MenuButtonDefault,
+)
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 
 # ---------------- НАСТРОЙКИ ----------------
-# Вставьте токен или оставьте и задайте переменную окружения BOT_TOKEN
+# Вставьте токен или (лучше) задайте переменную окружения BOT_TOKEN
+# Пример (Linux/Mac): export BOT_TOKEN="123:ABC"
 TOKEN = TOKEN = "8294512646:AAEvEWKxe_JerQ_CXFT9-FG7StxD8XbU9eQ"
 # ID админ-группы (вида -100...)
 ADMIN_GROUP_ID = -1003783796432
@@ -25,6 +33,19 @@ MAX_MAP_SIZE = 5000  # чтобы файл не разрастался беск�
 
 logging.basicConfig(format="%(asctime)s | %(levelname)s | %(message)s", level=logging.INFO)
 log = logging.getLogger("support_bot")
+
+
+async def post_init(application: Application) -> None:
+    """Скрываем меню команд Telegram (то, что показывается снизу), оставляя /start рабочим."""
+    bot = application.bot
+
+    # Убираем команды во всех основных scope, чтобы не показывалось меню
+    await bot.set_my_commands([], scope=BotCommandScopeDefault())
+    await bot.set_my_commands([], scope=BotCommandScopeAllPrivateChats())
+    await bot.set_my_commands([], scope=BotCommandScopeAllGroupChats())
+
+    # Сбрасываем кнопку меню (на случай если была настроена)
+    await bot.set_chat_menu_button(menu_button=MenuButtonDefault())
 
 
 def is_admin(user_id: int) -> bool:
@@ -278,11 +299,11 @@ async def admin_reply_in_group(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 def main():
-    if not TOKEN or TOKEN == "PASTE_YOUR_BOT_TOKEN_HERE":
-        print("❗ Вставьте TOKEN в файл или задайте переменную окружения BOT_TOKEN.")
+    if not TOKEN:
+        print("❗ Задайте токен в переменной окружения BOT_TOKEN.")
         return
 
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
 
     # команды
     app.add_handler(CommandHandler("start", start))
